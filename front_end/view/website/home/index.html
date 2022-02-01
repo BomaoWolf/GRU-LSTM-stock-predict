@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>charts</title>
+		<link rel="stylesheet" type="text/css" href="D:/layui-v2.6.7/layui/css/layui.css">
+	</head>
+	<body>
+		<div class="layui-layout layui-layout-admin">
+		  
+		  <div id="body" class="layui-body" style="position:relative; top:60px;left:60px;">
+		    <!-- 内容主体区域 -->
+		      
+			<form class="layui-form" action="">
+			  <div class="layui-form-item">.
+			    	<label class="layui-form-label" style="width:150px;height:40px">您要预测的股票代码：</label>
+			    	<div class="layui-input-inline">
+			      		<input type="text" name="code" required  lay-verify="required" placeholder="如601998.SH" autocomplete="off" class="layui-input" style="width:300px;height:40px">
+				    </div>
+			  </div>
+
+			  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:150px;height:40px">训练迭代次数：</label>
+			    <div class="layui-input-inline">
+			      <input type="text" name="echos" placeholder="请输入训练迭代次数" autocomplete="off" class="layui-input" style="width:300px;height:40px">
+			    </div>
+			  </div>
+			  <div class="layui-form-item">
+			    <label class="layui-form-label" style="width:150px;height:40px">预测天数：</label>
+			    <div class="layui-input-inline">
+			      <input type="text" name="days" placeholder="请输入预测天数" autocomplete="off" class="layui-input" style="width:300px;height:40px">
+			    </div>
+			    <div class="layui-form-mid layui-word-aux" style="position:relative; left:120px;">只能为1，3，5天</div>
+			  </div>
+			  <div class="layui-form-item">
+			    <div class="layui-input-block">
+			      <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+			      <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+			    </div>
+			  </div>
+			</form>
+
+		    <div id="EchartZhu" style="position:relative; top:60px;left:60px; width: 1500px;height: 500px;"> </div> 
+
+<!-- 
+		    <div class="layui-panel">
+		      <div style="position:relative; top:60px; width: 150px;height: 200px;">一个面板</div>
+		    </div>    -->
+
+		    <!-- <div style="padding: 15px;">内容主体区域。记得修改 layui.css 和 js 的路径</div> -->
+		  </div>
+		  
+		  
+		</div>
+<!-- 		<div class="layui-card">
+        	<div class="layui-card-header">柱形图</div>
+	        <div class="layui-card-body">
+				<div id="EchartZhu" style="width: 500px;height: 500px;"> </div>    
+			</div>
+		</div> -->
+
+		<script type="text/javascript" src="D:/layui-v2.6.7/layui/layui.js"></script>
+		<script type="text/javascript" src="D:/layui-v2.6.7/module/echarts/echarts.js"></script>
+		<script type="text/javascript">
+			layui.config({
+				base: 'D:/layui-v2.6.7/module/echarts4/'
+			}).use(['echarts','element','layer','util','form'], function () {			
+				var element = layui.element;
+				var $ = layui.jquery;
+				var layer = layui.layer
+				var echarts = layui.echarts;
+				var util = layui.util;
+				var myChart = echarts.init(document.getElementById('EchartZhu'));
+				var basePath = "http://localhost:5000"
+				var form = layui.form;
+
+
+		
+
+		function getMax(array) {
+		    var Max = array[0];
+		    for (var i = 1; i < array.length; i++) {
+		    // 不添加新的变量，进行数据的交换
+		        if (Max < array[i]) {
+		            Max = array[i];
+		        }
+
+		    }
+		    return Max;
+		}
+		//	求数组中的最小值
+		function getMin(array) {
+		    var Min = array[0];
+		    for (var i = 1; i < array.length; i++) {
+		    // 不添加新的变量，进行数据的交换
+		        if (Min > array[i]) {
+		            Min = array[i];
+		        }
+
+		    }
+		    return Min;
+		}
+
+
+
+		form.on('submit(formDemo)', function(data){
+			$.ajax({
+			    	type: 'post',
+					url: basePath+"/trainAndPredict",
+					contentType: "application/json", //必须有
+                    dataType: "json", //表示返回值类型，不必须
+                    data: JSON.stringify(data.field), 
+					async: false,
+					success: function(result) {	
+						var predictStr = result.predict;
+						var predictArr = predictStr.split(",");
+
+						var beforeDateStr = result.before_date;
+						var beforeDateArr = beforeDateStr.split(",");
+
+						var real10DaysStr = result.real_10days;
+						var real10DaysArr = real10DaysStr.split(",");
+						// console.log(result.real_10days)
+						// console.log(result.before_date)
+						// console.log(result.before_date[0])
+						// console.log(result.before_date[0][9])
+						var predictMin = getMin(real10DaysArr);
+						var predictMax = getMax(real10DaysArr);
+						var difference = predictMax - predictMin;
+						predictMin = predictMin - difference*0.25;
+						predictMax = predictMax + difference*0.25;
+						// console.log(result["未来三天收盘价预测值"]);
+						// console.log(typeof result);
+						// // var str = JSON.stringify(result);
+						// // console.log(typeof str);
+						// var jsarr=JSON.parse( str );
+						// console.log(jsarr)
+						// console.log(jsarr[1])
+						// console.log(jsarr[1][0])
+						//eval('layer.msg' + '(result)');
+
+						if(data.field.days==3){
+							var option = {
+					            title: {
+					                text: '预测三天的结果：'
+					            },
+					            tooltip: {},
+					            legend: {
+					                data:['价格']
+					            },
+					            xAxis: {
+					                data: [beforeDateArr[0],beforeDateArr[1],beforeDateArr[2],beforeDateArr[3],beforeDateArr[4],beforeDateArr[5],beforeDateArr[6],beforeDateArr[7],beforeDateArr[8],beforeDateArr[9],"第一天","第二天","第三天"],
+					                interval: 0,
+	    							rotate: 20
+					            },
+					            yAxis: {
+					            	name:'单位：元',
+					            	interval:1, // 步长
+							        min:predictMin, // 起始
+							        max:predictMax
+							    },
+					            series: [{
+					                name: '价格',
+					                type: 'line',
+					                data: [real10DaysArr[0],real10DaysArr[1],real10DaysArr[2],real10DaysArr[3],real10DaysArr[4],real10DaysArr[5],real10DaysArr[6],real10DaysArr[7],real10DaysArr[8],real10DaysArr[9],predictArr[0],predictArr[1],predictArr[2]],
+					                itemStyle : { normal: {label : {show: true}}}
+					            }]
+					        };
+						}else if(data.field.days==1){
+							var option = {
+					            title: {
+					                text: '预测一天的结果：'
+					            },
+					            tooltip: {},
+					            legend: {
+					                data:['价格']
+					            },
+					            xAxis: {
+					                data: [beforeDateArr[0],beforeDateArr[1],beforeDateArr[2],beforeDateArr[3],beforeDateArr[4],beforeDateArr[5],beforeDateArr[6],beforeDateArr[7],beforeDateArr[8],beforeDateArr[9],"第一天"],
+					                interval: 0,
+	    							rotate: 20
+					            },
+					            yAxis: {
+					            	name:'单位：元',
+					            	interval:1, // 步长
+							        min:predictMin, // 起始
+							        max:predictMax
+							    },
+					            series: [{
+					                name: '价格',
+					                type: 'line',
+					                data: [real10DaysArr[0],real10DaysArr[1],real10DaysArr[2],real10DaysArr[3],real10DaysArr[4],real10DaysArr[5],real10DaysArr[6],real10DaysArr[7],real10DaysArr[8],real10DaysArr[9],predictArr[0]],
+					                itemStyle : { normal: {label : {show: true}}}
+					            }]
+					        };
+						}else if(data.field.days==5){
+							var option = {
+					            title: {
+					                text: '预测五天的结果：'
+					            },
+					            tooltip: {},
+					            legend: {
+					                data:['价格']
+					            },
+					            xAxis: {
+					                data: [beforeDateArr[0],beforeDateArr[1],beforeDateArr[2],beforeDateArr[3],beforeDateArr[4],beforeDateArr[5],beforeDateArr[6],beforeDateArr[7],beforeDateArr[8],beforeDateArr[9],"第一天","第二天","第三天","第四天","第五天"],
+					                interval: 0,
+	    							rotate: 20
+					            },
+					            yAxis: {
+					            	name:'单位：元',
+					            	interval:1, // 步长
+							        min:predictMin, // 起始
+							        max:predictMax
+							    },
+					            series: [{
+					                name: '价格',
+					                type: 'line',
+					                data: [real10DaysArr[0],real10DaysArr[1],real10DaysArr[2],real10DaysArr[3],real10DaysArr[4],real10DaysArr[5],real10DaysArr[6],real10DaysArr[7],real10DaysArr[8],real10DaysArr[9],predictArr[0],predictArr[1],predictArr[2],predictArr[3],predictArr[4]],
+					                itemStyle : { normal: {label : {show: true}}}
+					            }]
+					        };
+					    }
+
+				        myChart.setOption(option)
+				        console.log(result)
+				        console.log(result.acc)
+				        console.log(result["acc"])
+				        $("#body").append(" <b><br><br><br></b>");
+				        $("#body").append(" <b>该模型预测的准确率:"+result.acc+"<br></b>");
+				        $("#body").append(" <b>该模型预测的涨跌正确率:"+result.acc_longOrShort+"<br></b>");
+				        $("#body").append(" <b>该模型前29天盈亏率:"+result["该模型前29天盈亏率"]+"<br></b>");
+				        $("#body").append(" <b>该模型前29天买入次数:"+result["该模型前29天买入次数"]+"<br></b>");
+				        $("#body").append(" <b>模型路径值(下次可通过此值调用本次训练的模型):"+result["模型路径值(下次可通过此值调用本次训练的模型)"]+"<br></b>");
+				    }
+				});
+			return false;
+		  });
+
+	
+
+
+        // // 指定图表的配置项和数据
+        // var option = {
+        //     title: {
+        //         text: 'ECharts 入门示例'
+        //     },
+        //     tooltip: {},
+        //     legend: {
+        //         data:['销量']
+        //     },
+        //     xAxis: {
+        //         data: ["衬衫","羊毛衫","雪纺衫","裤子","高跟鞋","袜子"]
+        //     },
+        //     yAxis: {},
+        //     series: [{
+        //         name: '销量',
+        //         type: 'line',
+        //         data: [5, 20, 36, 10, 10, 20]
+        //     }]
+        // };
+
+        // 使用刚指定的配置项和数据显示图表。
+        
+			});	
+		</script>
+
+		
+	</body>
+</html>
